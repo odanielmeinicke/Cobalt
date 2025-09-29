@@ -1,14 +1,12 @@
 package it.auties.whatsapp.controller;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
 import it.auties.protobuf.annotation.ProtobufMessage;
 import it.auties.protobuf.annotation.ProtobufProperty;
-import it.auties.protobuf.annotation.ProtobufSerializer;
 import it.auties.protobuf.model.ProtobufType;
-import it.auties.whatsapp.api.*;
+import it.auties.whatsapp.api.WhatsappClientType;
+import it.auties.whatsapp.api.WhatsappListener;
+import it.auties.whatsapp.api.WhatsappMessagePreviewHandler;
+import it.auties.whatsapp.api.WhatsappWebHistoryPolicy;
 import it.auties.whatsapp.model.business.BusinessCategory;
 import it.auties.whatsapp.model.call.Call;
 import it.auties.whatsapp.model.chat.Chat;
@@ -16,41 +14,36 @@ import it.auties.whatsapp.model.chat.ChatBuilder;
 import it.auties.whatsapp.model.chat.ChatEphemeralTimer;
 import it.auties.whatsapp.model.companion.CompanionDevice;
 import it.auties.whatsapp.model.contact.Contact;
+import it.auties.whatsapp.model.contact.ContactBuilder;
 import it.auties.whatsapp.model.info.ChatMessageInfo;
-import it.auties.whatsapp.model.info.ContextInfo;
-import it.auties.whatsapp.model.info.MessageStatusInfo;
+import it.auties.whatsapp.model.info.MessageInfo;
 import it.auties.whatsapp.model.info.NewsletterMessageInfo;
 import it.auties.whatsapp.model.jid.Jid;
 import it.auties.whatsapp.model.jid.JidProvider;
 import it.auties.whatsapp.model.jid.JidServer;
 import it.auties.whatsapp.model.media.MediaConnection;
 import it.auties.whatsapp.model.message.model.ChatMessageKey;
-import it.auties.whatsapp.model.message.model.ContextualMessage;
 import it.auties.whatsapp.model.mobile.CountryLocale;
 import it.auties.whatsapp.model.mobile.PhoneNumber;
 import it.auties.whatsapp.model.newsletter.Newsletter;
+import it.auties.whatsapp.model.newsletter.NewsletterBuilder;
 import it.auties.whatsapp.model.newsletter.NewsletterMetadata;
-import it.auties.whatsapp.model.node.Node;
 import it.auties.whatsapp.model.privacy.PrivacySettingEntry;
 import it.auties.whatsapp.model.privacy.PrivacySettingType;
-import it.auties.whatsapp.model.signal.auth.UserAgent.ReleaseChannel;
-import it.auties.whatsapp.model.signal.auth.Version;
+import it.auties.whatsapp.model.auth.UserAgent.ReleaseChannel;
+import it.auties.whatsapp.model.auth.Version;
 import it.auties.whatsapp.model.sync.HistorySyncMessage;
-import it.auties.whatsapp.socket.SocketRequest;
 import it.auties.whatsapp.util.AppMetadata;
-import it.auties.whatsapp.util.Bytes;
 import it.auties.whatsapp.util.Clock;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,7 +52,7 @@ import java.util.stream.Stream;
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 @ProtobufMessage
-public final class Store extends Controller<Store> {
+public final class Store extends Controller {
     /**
      * The version used by this session
      */
@@ -69,7 +62,7 @@ public final class Store extends Controller<Store> {
     /**
      * The version used by this session
      */
-    CompletableFuture<Version> version;
+    Version version;
 
     /**
      * Whether this account is online for other users
@@ -189,7 +182,6 @@ public final class Store extends Controller<Store> {
     /**
      * The non-null map of chats
      */
-    @JsonIgnore
     final ConcurrentHashMap<Jid, Chat> chats;
 
     /**
@@ -207,7 +199,6 @@ public final class Store extends Controller<Store> {
     /**
      * The non-null map of newsletters
      */
-    @JsonIgnore
     final ConcurrentHashMap<Jid, Newsletter> newsletters;
 
     /**
@@ -235,29 +226,9 @@ public final class Store extends Controller<Store> {
     boolean twentyFourHourFormat;
 
     /**
-     * The non-null list of requests that were sent to Whatsapp. They might or might not be waiting
-     * for a newsletters
-     */
-    @JsonIgnore
-    final ConcurrentHashMap<String, SocketRequest> requests;
-
-    /**
-     * The non-null list of replies waiting to be fulfilled
-     */
-    @JsonIgnore
-    final ConcurrentHashMap<String, CompletableFuture<ChatMessageInfo>> replyHandlers;
-
-    /**
      * The non-null list of listeners
      */
-    @JsonIgnore
-    final KeySetView<Listener, Boolean> listeners;
-
-    /**
-     * The request tag, used to create messages
-     */
-    @JsonIgnore
-    final String tag;
+    final KeySetView<WhatsappListener, Boolean> listeners;
 
     /**
      * The timestampSeconds in seconds for the initialization of this object
@@ -268,13 +239,11 @@ public final class Store extends Controller<Store> {
     /**
      * The media connection associated with this store
      */
-    @JsonIgnore
     MediaConnection mediaConnection;
 
     /**
      * The media connection latch associated with this store
      */
-    @JsonIgnore
     final CountDownLatch mediaConnectionLatch;
 
     /**
@@ -284,16 +253,10 @@ public final class Store extends Controller<Store> {
     ChatEphemeralTimer newChatsEphemeralTimer;
 
     /**
-     * The setting to use when generating previews for text messages that contain links
-     */
-    @ProtobufProperty(index = 32, type = ProtobufType.ENUM)
-    TextPreviewSetting textPreviewSetting;
-
-    /**
      * Describes how much chat history Whatsapp should send
      */
     @ProtobufProperty(index = 33, type = ProtobufType.MESSAGE)
-    WebHistorySetting historyLength;
+    WhatsappWebHistoryPolicy historyLength;
 
     /**
      * Whether updates about the presence of the session should be sent automatically to Whatsapp
@@ -326,16 +289,40 @@ public final class Store extends Controller<Store> {
     boolean checkPatchMacs;
 
     /**
-     * The setting to use when uploading/downloading medias
+     * Whether chats where synced.
+     * On web, this happens through a history sync; on mobile it's always true after bootstrap.
      */
-    @ProtobufProperty(index = 42, type = ProtobufType.ENUM)
-    MediaProxySetting mediaProxySetting;
+    @ProtobufProperty(index = 42, type = ProtobufType.BOOL)
+    boolean syncedChats;
 
     /**
-     * All args constructor
+     * Whether contact where synced.
+     * On web, this happens through a history sync; on mobile it's always true after bootstrap.
      */
-    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-    public Store(UUID uuid, PhoneNumber phoneNumber, ClientType clientType, Collection<String> alias, URI proxy, boolean online, CountryLocale locale, String name, String verifiedName, String businessAddress, Double businessLongitude, Double businessLatitude, String businessDescription, String businessWebsite, String businessEmail, BusinessCategory businessCategory, String deviceHash, LinkedHashMap<Jid, Integer> linkedDevicesKeys, URI profilePicture, String about, Jid jid, Jid lid, ConcurrentHashMap<String, String> properties, ConcurrentHashMap<Jid, Contact> contacts, KeySetView<ChatMessageInfo, Boolean> status, ConcurrentHashMap<String, PrivacySettingEntry> privacySettings, ConcurrentHashMap<String, Call> calls, boolean unarchiveChats, boolean twentyFourHourFormat, Long initializationTimeStamp, ChatEphemeralTimer newChatsEphemeralTimer, TextPreviewSetting textPreviewSetting, WebHistorySetting historyLength, boolean automaticPresenceUpdates, boolean automaticMessageReceipts, ReleaseChannel releaseChannel, CompanionDevice device, boolean checkPatchMacs, MediaProxySetting mediaProxySetting) {
+    @ProtobufProperty(index = 43, type = ProtobufType.BOOL)
+    boolean syncedContacts;
+
+    /**
+     * Whether newsletters where synced.
+     * On both platforms a w:mex query is used.
+     */
+    @ProtobufProperty(index = 44, type = ProtobufType.BOOL)
+    boolean syncedNewsletters;
+
+    /**
+     * Whether status was synced.
+     * On web, this happens through a history sync; on mobile it's always true after bootstrap.
+     */
+    @ProtobufProperty(index = 45, type = ProtobufType.BOOL)
+    boolean syncedStatus;
+
+    /**
+     * Whether web app state was synced.
+     */
+    @ProtobufProperty(index = 46, type = ProtobufType.BOOL)
+    boolean syncedWebAppState;
+
+    Store(UUID uuid, PhoneNumber phoneNumber, WhatsappClientType clientType, Collection<String> alias, URI proxy, boolean online, CountryLocale locale, String name, String verifiedName, String businessAddress, Double businessLongitude, Double businessLatitude, String businessDescription, String businessWebsite, String businessEmail, BusinessCategory businessCategory, String deviceHash, LinkedHashMap<Jid, Integer> linkedDevicesKeys, URI profilePicture, String about, Jid jid, Jid lid, ConcurrentHashMap<String, String> properties, ConcurrentHashMap<Jid, Contact> contacts, KeySetView<ChatMessageInfo, Boolean> status, ConcurrentHashMap<String, PrivacySettingEntry> privacySettings, ConcurrentHashMap<String, Call> calls, boolean unarchiveChats, boolean twentyFourHourFormat, Long initializationTimeStamp, ChatEphemeralTimer newChatsEphemeralTimer, WhatsappWebHistoryPolicy historyLength, boolean automaticPresenceUpdates, boolean automaticMessageReceipts, ReleaseChannel releaseChannel, CompanionDevice device, boolean checkPatchMacs, boolean syncedChats, boolean syncedContacts, boolean syncedNewsletters, boolean syncedStatus, boolean syncedWebAppState) {
         super(uuid, phoneNumber, null, clientType, alias);
         this.proxy = proxy;
         this.online = online;
@@ -364,34 +351,34 @@ public final class Store extends Controller<Store> {
         this.calls = Objects.requireNonNullElseGet(calls, ConcurrentHashMap::new);
         this.unarchiveChats = unarchiveChats;
         this.twentyFourHourFormat = twentyFourHourFormat;
-        this.requests = new ConcurrentHashMap<>();
-        this.replyHandlers = new ConcurrentHashMap<>();
         this.listeners = ConcurrentHashMap.newKeySet();
-        this.tag = HexFormat.of().formatHex(Bytes.random(1));
         this.initializationTimeStamp = Objects.requireNonNullElseGet(initializationTimeStamp, Clock::nowSeconds);
         this.mediaConnectionLatch = new CountDownLatch(1);
         this.newChatsEphemeralTimer = Objects.requireNonNullElse(newChatsEphemeralTimer, ChatEphemeralTimer.OFF);
-        this.textPreviewSetting = Objects.requireNonNullElse(textPreviewSetting, TextPreviewSetting.ENABLED_WITH_INFERENCE);
-        this.historyLength = Objects.requireNonNullElseGet(historyLength, () -> WebHistorySetting.standard(true));
+        this.historyLength = Objects.requireNonNullElseGet(historyLength, () -> WhatsappWebHistoryPolicy.standard(true));
         this.automaticPresenceUpdates = automaticPresenceUpdates;
         this.automaticMessageReceipts = automaticMessageReceipts;
         this.releaseChannel = Objects.requireNonNullElse(releaseChannel, ReleaseChannel.RELEASE);
         this.device = device;
         this.checkPatchMacs = checkPatchMacs;
-        this.mediaProxySetting = Objects.requireNonNullElse(mediaProxySetting, MediaProxySetting.ALL);
+        this.syncedChats = syncedChats;
+        this.syncedContacts = syncedContacts;
+        this.syncedNewsletters = syncedNewsletters;
+        this.syncedStatus = syncedStatus;
+        this.syncedWebAppState = syncedWebAppState;
     }
 
-    public static Store newStore(UUID uuid, Long phoneNumber, Collection<String> alias, ClientType clientType) {
+    public static Store of(UUID uuid, PhoneNumber phoneNumber, Collection<String> alias, WhatsappClientType clientType) {
         return new StoreBuilder()
                 .uuid(uuid)
                 .initializationTimeStamp(Clock.nowSeconds())
-                .phoneNumber(phoneNumber != null ? PhoneNumber.of(phoneNumber) : null)
-                .device(clientType == ClientType.MOBILE ? CompanionDevice.ios(false) : CompanionDevice.web())
+                .phoneNumber(phoneNumber)
+                .device(clientType == WhatsappClientType.MOBILE ? CompanionDevice.ios(false) : CompanionDevice.web())
                 .clientType(clientType)
                 .alias(alias)
-                .jid(phoneNumber != null ? Jid.of(phoneNumber) : null)
+                .jid(phoneNumber != null ? phoneNumber.toJid() : null)
                 .automaticPresenceUpdates(true)
-                .automaticMessageReceipts(clientType == ClientType.MOBILE)
+                .automaticMessageReceipts(clientType == WhatsappClientType.MOBILE)
                 .build();
     }
 
@@ -405,7 +392,7 @@ public final class Store extends Controller<Store> {
         return switch (jid) {
             case Contact contact -> Optional.of(contact);
             case null -> Optional.empty();
-            default -> Optional.ofNullable(contacts.get(jid.toJid().toSimpleJid()));
+            default -> Optional.ofNullable(contacts.get(jid.toJid().withoutData()));
         };
     }
 
@@ -473,7 +460,7 @@ public final class Store extends Controller<Store> {
      * @param id       the jid to search
      * @return a non-null optional
      */
-    public Optional<? extends MessageStatusInfo<?>> findMessageById(JidProvider provider, String id) {
+    public Optional<? extends MessageInfo> findMessageById(JidProvider provider, String id) {
         if (provider == null || id == null) {
             return Optional.empty();
         }
@@ -483,15 +470,19 @@ public final class Store extends Controller<Store> {
             case Newsletter newsletter -> findMessageById(newsletter, id);
             case Contact contact -> findChatByJid(contact.jid())
                     .flatMap(chat -> findMessageById(chat, id));
-            case Jid contactJid -> switch (contactJid.type()) {
-                case NEWSLETTER -> findNewsletterByJid(contactJid)
-                        .flatMap(newsletter -> findMessageById(newsletter, id));
-                case STATUS -> status.stream()
-                        .filter(entry -> Objects.equals(entry.chatJid(), provider.toJid()) && Objects.equals(entry.id(), id))
-                        .findFirst();
-                default -> findChatByJid(contactJid)
-                        .flatMap(chat -> findMessageById(chat, id));
-            };
+            case Jid contactJid -> {
+                if (contactJid.server().type() == JidServer.Type.NEWSLETTER) {
+                    yield findNewsletterByJid(contactJid)
+                            .flatMap(newsletter -> findMessageById(newsletter, id));
+                } else if (Jid.statusBroadcastAccount().equals(contactJid)) {
+                    yield status.stream()
+                            .filter(entry -> Objects.equals(entry.chatJid(), provider.toJid()) && Objects.equals(entry.id(), id))
+                            .findFirst();
+                } else {
+                    yield findChatByJid(contactJid)
+                            .flatMap(chat -> findMessageById(chat, id));
+                }
+            }
             case JidServer jidServer -> findChatByJid(jidServer.toJid())
                     .flatMap(chat -> findMessageById(chat, id));
         };
@@ -694,78 +685,6 @@ public final class Store extends Controller<Store> {
     }
 
     /**
-     * Queries the first request whose id equals the one stored by the newsletters and, if any is found,
-     * it completes it
-     *
-     * @param response      the newsletters to complete the request with
-     * @param exceptionally whether the newsletters is erroneous
-     * @return a boolean
-     */
-    public boolean resolvePendingRequest(Node response, boolean exceptionally) {
-        return findPendingRequest(response.id()).map(request -> deleteAndComplete(request, response, exceptionally))
-                .isPresent();
-    }
-
-    /**
-     * Queries the first request whose id is equal to {@code id}
-     *
-     * @param id the id to search, can be null
-     * @return a non-null optional
-     */
-    @SuppressWarnings("ClassEscapesDefinedScope")
-    public Optional<SocketRequest> findPendingRequest(String id) {
-        return id == null ? Optional.empty() : Optional.ofNullable(requests.get(id));
-    }
-
-    private SocketRequest deleteAndComplete(SocketRequest request, Node response, boolean exceptionally) {
-        if (request.complete(response, exceptionally)) {
-            requests.remove(request.id());
-        }
-
-        return request;
-    }
-
-    /**
-     * Clears all the data that this object holds and closes the pending requests
-     */
-    public void resolveAllPendingRequests() {
-        requests.values().forEach(request -> request.complete(null, false));
-    }
-
-    /**
-     * Returns an immutable collection of pending requests
-     *
-     * @return a non-null collection
-     */
-    @SuppressWarnings("ClassEscapesDefinedScope")
-    public Collection<SocketRequest> pendingRequests() {
-        return Collections.unmodifiableCollection(requests.values());
-    }
-
-    /**
-     * Queries the first reply waiting and completes it with the input message
-     *
-     * @param response the newsletters to complete the reply with
-     * @return a boolean
-     */
-    public boolean resolvePendingReply(ChatMessageInfo response) {
-        return response.message()
-                .contentWithContext()
-                .flatMap(ContextualMessage::contextInfo)
-                .flatMap(ContextInfo::quotedMessageId)
-                .map(id -> {
-                    var future = replyHandlers.remove(id);
-                    if (future == null) {
-                        return false;
-                    }
-
-                    future.complete(response);
-                    return true;
-                })
-                .orElse(false);
-    }
-
-    /**
      * Adds a chat in memory
      *
      * @param chatJid the chat to add
@@ -786,9 +705,9 @@ public final class Store extends Controller<Store> {
      * @return the old chat, if present
      */
     public Optional<Chat> addChat(Chat chat) {
-        if (chat.hasName() && chat.jid().hasServer(JidServer.whatsapp())) {
+        if (chat.hasName() && chat.jid().hasServer(JidServer.user())) {
             var contact = findContactByJid(chat.jid())
-                    .orElseGet(() -> addContact(new Contact(chat.jid())));
+                    .orElseGet(() -> addContact(chat.jid()));
             contact.setFullName(chat.name());
         }
         var oldChat = chats.get(chat.jid());
@@ -798,7 +717,7 @@ public final class Store extends Controller<Store> {
             }
             joinMessages(chat, oldChat);
         }
-        return addChatDirect(chat);
+        return Optional.ofNullable(chats.put(chat.jid(), chat));
     }
 
     private void joinMessages(Chat chat, Chat oldChat) {
@@ -816,23 +735,16 @@ public final class Store extends Controller<Store> {
     }
 
     /**
-     * Adds a chat in memory without executing any check
-     *
-     * @param chat the chat to add
-     * @return the old chat, if present
-     */
-    public Optional<Chat> addChatDirect(Chat chat) {
-        return Optional.ofNullable(chats.put(chat.jid(), chat));
-    }
-
-    /**
      * Adds a contact in memory
      *
      * @param jid the contact to add
      * @return the input contact
      */
     public Contact addContact(Jid jid) {
-        return addContact(new Contact(jid));
+        var newContact = new ContactBuilder()
+                .jid(jid)
+                .build();
+        return addContact(newContact);
     }
 
     /**
@@ -844,6 +756,20 @@ public final class Store extends Controller<Store> {
     public Contact addContact(Contact contact) {
         contacts.put(contact.jid(), contact);
         return contact;
+    }
+
+    /**
+     * Adds a newsletter in memory
+     *
+     * @param newseltterJid the newsletter to add
+     * @return the input newsletter
+     */
+    public Newsletter addNewNewsletter(Jid newseltterJid) {
+        var newsletter = new NewsletterBuilder()
+                .jid(newseltterJid)
+                .build();
+        addNewsletter(newsletter);
+        return newsletter;
     }
 
     /**
@@ -964,12 +890,10 @@ public final class Store extends Controller<Store> {
      * Writes a media connection
      *
      * @param mediaConnection a media connection
-     * @return the same instance
      */
-    public Store setMediaConnection(MediaConnection mediaConnection) {
+    public void setMediaConnection(MediaConnection mediaConnection) {
         this.mediaConnection = mediaConnection;
         mediaConnectionLatch.countDown();
-        return this;
     }
 
     public boolean hasMediaConnection() {
@@ -989,39 +913,9 @@ public final class Store extends Controller<Store> {
      * Adds a status to this store
      *
      * @param info the non-null status to add
-     * @return the same instance
      */
-    public Store addStatus(ChatMessageInfo info) {
+    public void addStatus(ChatMessageInfo info) {
         status.add(info);
-        return this;
-    }
-
-    /**
-     * Adds a request to this store
-     *
-     * @param request the non-null request to add
-     * @return the non-null completable newsletters of the request
-     */
-    @SuppressWarnings("ClassEscapesDefinedScope")
-    public CompletableFuture<Node> addRequest(SocketRequest request) {
-        if (request.id() == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        requests.put(request.id(), request);
-        return request.future();
-    }
-
-    /**
-     * Adds a replay handler to this store
-     *
-     * @param messageId the non-null message id to listen for
-     * @return the non-null completable newsletters of the reply handler
-     */
-    public CompletableFuture<ChatMessageInfo> addPendingReply(String messageId) {
-        var result = new CompletableFuture<ChatMessageInfo>();
-        replyHandlers.put(messageId, result);
-        return result;
     }
 
     /**
@@ -1117,7 +1011,7 @@ public final class Store extends Controller<Store> {
      *
      * @return a non-null collection
      */
-    public Collection<Listener> listeners() {
+    public Collection<WhatsappListener> listeners() {
         return Collections.unmodifiableSet(listeners);
     }
 
@@ -1125,53 +1019,42 @@ public final class Store extends Controller<Store> {
      * Registers a listener
      *
      * @param listener the listener to register
-     * @return the same instance
      */
-    public Store addListener(Listener listener) {
+    public void addListener(WhatsappListener listener) {
         listeners.add(listener);
-        return this;
     }
 
     /**
      * Registers a collection of listeners
      *
      * @param listeners the listeners to register
-     * @return the same instance
      */
-    public Store addListeners(Collection<Listener> listeners) {
+    public void addListeners(Collection<WhatsappListener> listeners) {
         this.listeners.addAll(listeners);
-        return this;
     }
 
     /**
      * Removes a listener
      *
      * @param listener the listener to remove
-     * @return the same instance
+     * @return whether the listener was removed
      */
-    public Store removeListener(Listener listener) {
-        listeners.remove(listener);
-        return this;
+    public boolean removeListener(WhatsappListener listener) {
+        return listeners.remove(listener);
     }
 
     /**
      * Removes all listeners
-     *
-     * @return the same instance
      */
-    public Store removeListeners() {
+    public void removeListeners() {
         listeners.clear();
-        return this;
     }
 
     /**
      * Sets the proxy used by this session
-     *
-     * @return the same instance
      */
-    public Store setProxy(URI proxy) {
+    public void setProxy(URI proxy) {
         this.proxy = proxy;
-        return this;
     }
 
     /**
@@ -1247,14 +1130,13 @@ public final class Store extends Controller<Store> {
     }
 
     public void dispose() {
-        serialize(false);
-        serializer.linkMetadata(this);
+        serialize();
         mediaConnectionLatch.countDown();
     }
 
     @Override
-    public void serialize(boolean async) {
-        serializer.serializeStore(this, async);
+    public void serialize() {
+        serializer.serializeStore(this);
     }
 
     /**
@@ -1286,17 +1168,8 @@ public final class Store extends Controller<Store> {
         return Collections.unmodifiableCollection(calls.values());
     }
 
-    public String tag() {
-        return tag;
-    }
-
-    @JsonGetter("version")
     public Version version() {
-        if(version == null) {
-            this.version = AppMetadata.getVersion(device.platform());
-        }
-
-        return version.join();
+        return Objects.requireNonNullElseGet(version, () -> version = AppMetadata.getVersion(device.platform()));
     }
 
     public boolean online() {
@@ -1347,15 +1220,7 @@ public final class Store extends Controller<Store> {
         return this.newChatsEphemeralTimer;
     }
 
-    public TextPreviewSetting textPreviewSetting() {
-        return this.textPreviewSetting;
-    }
-
-    public MediaProxySetting mediaProxySetting() {
-        return this.mediaProxySetting;
-    }
-
-    public WebHistorySetting webHistorySetting() {
+    public WhatsappWebHistoryPolicy webHistorySetting() {
         return this.historyLength;
     }
 
@@ -1379,193 +1244,155 @@ public final class Store extends Controller<Store> {
         return automaticPresenceUpdates;
     }
 
-    public Store setOnline(boolean online) {
+    public void setOnline(boolean online) {
         this.online = online;
-        return this;
     }
 
-    public Store setLocale(CountryLocale locale) {
+    public void setLocale(CountryLocale locale) {
         this.locale = locale;
-        return this;
     }
 
-    public Store setName(String name) {
+    public void setName(String name) {
         this.name = name;
-        return this;
     }
 
-    public Store setBusinessAddress(String businessAddress) {
+    public void setBusinessAddress(String businessAddress) {
         this.businessAddress = businessAddress;
-        return this;
     }
 
-    public Store setBusinessLongitude(Double businessLongitude) {
+    public void setBusinessLongitude(Double businessLongitude) {
         this.businessLongitude = businessLongitude;
-        return this;
     }
 
-    public Store setBusinessLatitude(Double businessLatitude) {
+    public void setBusinessLatitude(Double businessLatitude) {
         this.businessLatitude = businessLatitude;
-        return this;
     }
 
-    public Store setBusinessDescription(String businessDescription) {
+    public void setBusinessDescription(String businessDescription) {
         this.businessDescription = businessDescription;
-        return this;
     }
 
-    public Store setBusinessWebsite(String businessWebsite) {
+    public void setBusinessWebsite(String businessWebsite) {
         this.businessWebsite = businessWebsite;
-        return this;
     }
 
-    public Store setBusinessEmail(String businessEmail) {
+    public void setBusinessEmail(String businessEmail) {
         this.businessEmail = businessEmail;
-        return this;
     }
 
-    public Store setBusinessCategory(BusinessCategory businessCategory) {
+    public void setBusinessCategory(BusinessCategory businessCategory) {
         this.businessCategory = businessCategory;
-        return this;
     }
 
-    public Store setDeviceHash(String deviceHash) {
+    public void setDeviceHash(String deviceHash) {
         this.deviceHash = deviceHash;
-        return this;
     }
 
-    public Store setLinkedDevicesKeys(LinkedHashMap<Jid, Integer> linkedDevicesKeys) {
+    public void setLinkedDevicesKeys(LinkedHashMap<Jid, Integer> linkedDevicesKeys) {
         this.linkedDevicesKeys = linkedDevicesKeys;
-        return this;
     }
 
-    public Store setProfilePicture(URI profilePicture) {
+    public void setProfilePicture(URI profilePicture) {
         this.profilePicture = profilePicture;
-        return this;
     }
 
-    public Store setAbout(String about) {
+    public void setAbout(String about) {
         this.about = about;
-        return this;
     }
 
-    public Store setJid(Jid jid) {
+    public void setJid(Jid jid) {
         this.jid = jid;
-        return this;
     }
 
-    public Store setLid(Jid lid) {
+    public void setLid(Jid lid) {
         this.lid = lid;
-        return this;
     }
 
-    public Store setUnarchiveChats(boolean unarchiveChats) {
+    public void setUnarchiveChats(boolean unarchiveChats) {
         this.unarchiveChats = unarchiveChats;
-        return this;
     }
 
-    public Store setTwentyFourHourFormat(boolean twentyFourHourFormat) {
+    public void setTwentyFourHourFormat(boolean twentyFourHourFormat) {
         this.twentyFourHourFormat = twentyFourHourFormat;
-        return this;
     }
 
-    public Store setNewChatsEphemeralTimer(ChatEphemeralTimer newChatsEphemeralTimer) {
+    public void setNewChatsEphemeralTimer(ChatEphemeralTimer newChatsEphemeralTimer) {
         this.newChatsEphemeralTimer = newChatsEphemeralTimer;
-        return this;
     }
 
-    public Store setTextPreviewSetting(TextPreviewSetting textPreviewSetting) {
-        this.textPreviewSetting = textPreviewSetting;
-        return this;
+    public void setWebHistorySetting(WhatsappWebHistoryPolicy whatsappWebHistoryPolicy) {
+        this.historyLength = whatsappWebHistoryPolicy;
     }
 
-    public Store setMediaProxySetting(MediaProxySetting mediaProxySetting) {
-        this.mediaProxySetting = mediaProxySetting;
-        return this;
-    }
-
-    public Store setWebHistorySetting(WebHistorySetting webHistorySetting) {
-        this.historyLength = webHistorySetting;
-        return this;
-    }
-
-    public Store setAutomaticPresenceUpdates(boolean automaticPresenceUpdates) {
+    public void setAutomaticPresenceUpdates(boolean automaticPresenceUpdates) {
         this.automaticPresenceUpdates = automaticPresenceUpdates;
-        return this;
     }
 
-    public Store setReleaseChannel(ReleaseChannel releaseChannel) {
+    public void setReleaseChannel(ReleaseChannel releaseChannel) {
         this.releaseChannel = releaseChannel;
-        return this;
     }
 
-    public Store setDevice(CompanionDevice device) {
-        if(Objects.equals(device(), device)) {
-            return this;
+    public void setDevice(CompanionDevice device) {
+        if(!Objects.equals(device(), device)) {
+            this.device = Objects.requireNonNull(device, "The device cannot be null");
+            this.version = null;
         }
-
-        Objects.requireNonNull(device, "The device cannot be null");
-        this.device = device;
-        this.version = device.appVersion()
-                .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> AppMetadata.getVersion(device.platform()));
-        return this;
     }
 
-    public Store setCheckPatchMacs(boolean checkPatchMacs) {
+    public void setCheckPatchMacs(boolean checkPatchMacs) {
         this.checkPatchMacs = checkPatchMacs;
-        return this;
     }
 
     public Optional<String> verifiedName() {
         return Optional.ofNullable(verifiedName);
     }
 
-    public Store setVerifiedName(String verifiedName) {
+    public void setVerifiedName(String verifiedName) {
         this.verifiedName = verifiedName;
-        return this;
     }
 
-    public Store setAutomaticMessageReceipts(boolean automaticMessageReceipts) {
+    public void setAutomaticMessageReceipts(boolean automaticMessageReceipts) {
         this.automaticMessageReceipts = automaticMessageReceipts;
-        return this;
     }
 
-    private static class AsyncVersion {
-        private Version value;
-        private CompletableFuture<Version> future;
+    public boolean syncedChats() {
+        return syncedChats;
+    }
 
-        @JsonCreator
-        private AsyncVersion(Version initialValue) {
-            this.value = Objects.requireNonNull(initialValue, "Missing value");
-        }
+    public void setSyncedChats(boolean syncedChats) {
+        this.syncedChats = syncedChats;
+    }
 
-        public AsyncVersion(Version initialValue, Supplier<CompletableFuture<Version>> defaultValue) {
-            this.value = initialValue;
-            if (initialValue == null) {
-                this.future = defaultValue.get();
-            }
-        }
+    public boolean syncedContacts() {
+        return syncedContacts;
+    }
 
-        @ProtobufSerializer
-        @JsonValue
-        public Version value() {
-            if (future != null) {
-                this.value = future.join();
-                future = null;
-            }
+    public void setSyncedContacts(boolean syncedContacts) {
+        this.syncedContacts = syncedContacts;
+    }
 
-            return value;
-        }
+    public boolean syncedNewsletters() {
+        return syncedNewsletters;
+    }
 
-        public void setValue(Version value) {
-            if (future != null && !future.isDone()) {
-                future.cancel(true);
-            }
+    public void setSyncedNewsletters(boolean syncedNewsletters) {
+        this.syncedNewsletters = syncedNewsletters;
+    }
 
-            this.future = null;
-            this.value = value;
-        }
+    public boolean syncedStatus() {
+        return syncedStatus;
+    }
+
+    public void setSyncedStatus(boolean syncedStatus) {
+        this.syncedStatus = syncedStatus;
+    }
+
+    public boolean syncedWebAppState() {
+        return syncedWebAppState;
+    }
+
+    public void setSyncedWebAppState(boolean syncedWebAppState) {
+        this.syncedWebAppState = syncedWebAppState;
     }
 
     @Override
@@ -1602,15 +1429,18 @@ public final class Store extends Controller<Store> {
                 Objects.equals(calls, store.calls) &&
                 Objects.equals(initializationTimeStamp, store.initializationTimeStamp) &&
                 newChatsEphemeralTimer == store.newChatsEphemeralTimer &&
-                textPreviewSetting == store.textPreviewSetting &&
                 Objects.equals(historyLength, store.historyLength) &&
                 releaseChannel == store.releaseChannel &&
                 Objects.equals(device, store.device) &&
-                mediaProxySetting == store.mediaProxySetting;
+                syncedChats == store.syncedChats &&
+                syncedContacts == store.syncedContacts &&
+                syncedNewsletters == store.syncedNewsletters &&
+                syncedStatus == store.syncedStatus &&
+                syncedWebAppState == store.syncedWebAppState;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(proxy, version, online, locale, name, verifiedName, businessAddress, businessLongitude, businessLatitude, businessDescription, businessWebsite, businessEmail, businessCategory, deviceHash, linkedDevicesKeys, profilePicture, about, jid, lid, properties, contacts, status, privacySettings, calls, unarchiveChats, twentyFourHourFormat, initializationTimeStamp, newChatsEphemeralTimer, textPreviewSetting, historyLength, automaticPresenceUpdates, automaticMessageReceipts, releaseChannel, device, checkPatchMacs, mediaProxySetting);
+        return Objects.hash(proxy, version, online, locale, name, verifiedName, businessAddress, businessLongitude, businessLatitude, businessDescription, businessWebsite, businessEmail, businessCategory, deviceHash, linkedDevicesKeys, profilePicture, about, jid, lid, properties, contacts, status, privacySettings, calls, unarchiveChats, twentyFourHourFormat, initializationTimeStamp, newChatsEphemeralTimer, historyLength, automaticPresenceUpdates, automaticMessageReceipts, releaseChannel, device, checkPatchMacs, syncedChats, syncedContacts, syncedNewsletters, syncedStatus, syncedWebAppState);
     }
 }

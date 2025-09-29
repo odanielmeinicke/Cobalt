@@ -12,6 +12,10 @@ import java.util.Optional;
 @ProtobufEnum
 public enum MessageStatus {
     /**
+     * Unknown status (used as a default value)
+     */
+    UNKNOWN(999),
+    /**
      * Erroneous status(no ticks)
      */
     ERROR(0),
@@ -46,9 +50,5 @@ public enum MessageStatus {
         return name == null ? Optional.empty() : Arrays.stream(values())
                 .filter(entry -> name.toLowerCase().contains(entry.name().toLowerCase()))
                 .findFirst();
-    }
-
-    public int index() {
-        return this.index;
     }
 }

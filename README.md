@@ -1,7 +1,6 @@
 # Cobalt
 
 Whatsapp4j has been renamed to Cobalt to comply with an official request coming from Whatsapp.
-The repository's history was cleared to comply with this request, but keep in mind that the project has been actively developed for over two years.
 To be clear, this library is not affiliated with Whatsapp LLC in any way.
 This is a personal project that I maintain in my free time
 
@@ -45,7 +44,7 @@ In short, if you use this library without a malicious intent, you will never get
 <dependency>
     <groupId>com.github.auties00</groupId>
     <artifactId>cobalt</artifactId>
-    <version>0.0.9</version>
+    <version>0.0.10</version>
 </dependency>
 ```
 
@@ -53,17 +52,17 @@ In short, if you use this library without a malicious intent, you will never get
 
 - Groovy DSL
     ```groovy
-    implementation 'com.github.auties00:cobalt:0.0.9'
+    implementation 'com.github.auties00:cobalt:0.0.10'
     ```
 
 - Kotlin DSL
     ```groovy
-    implementation("com.github.auties00:cobalt:0.0.9")
+    implementation("com.github.auties00:cobalt:0.0.10")
     ```
 
 ### Javadocs & Documentation
 
-Javadocs for Cobalt are available [here](https://www.javadoc.io/doc/com.github.auties00/cobalt/0.0.9).
+Javadocs for Cobalt are available [here](https://www.javadoc.io/doc/com.github.auties00/cobalt/0.0.10).
 The documentation for this project reaches most of the publicly available APIs(i.e. public members in exported packages), but sometimes the Javadoc may be incomplete
 or some methods could be absent from the project's README. If you find any of the latter, know that even small contributions are welcomed!
 
@@ -153,9 +152,9 @@ You can now customize the API with these options:
   ```java
   .autodetectListeners(true)
   ```
-- textPreviewSetting - Whether a media preview should be generated for text messages containing links
+- whatsappMessagePreviewHandler - Whether a media preview should be generated for text messages containing links
   ```java
-  .textPreviewSetting(TextPreviewSetting.ENABLED_WITH_INFERENCE)
+  .whatsappMessagePreviewHandler(TextPreviewSetting.ENABLED_WITH_INFERENCE)
   ```
 - checkPatchMacs - Whether patch macs coming from app state pulls should be validated
   ```java
@@ -210,14 +209,14 @@ There are also platform specific options:
       .businessAddress("1600 Amphitheatre Pkwy, Mountain View")
        ```
 
-> **_IMPORTANT:_** All options are serialized: there is no need to specify them again when deserializing an existing session
+> **_IMPORTANT:_** All options are serialized: there is no need to specify them again when deserializing an existing sessionRecord
 
-Finally select the registration status of your session:
-- Creates a new registered session: this means that the QR code was already scanned / the OTP was already sent to Whatsapp
+Finally select the registration status of your sessionRecord:
+- Creates a new registered sessionRecord: this means that the QR code was already scanned / the OTP was already sent to Whatsapp
   ```java
   .registered()
   ```
-- Creates a new unregistered session: this means that the QR code wasn't scanned / the OTP wasn't sent to the companion's phone via SMS/Call/OTP
+- Creates a new unregistered sessionRecord: this means that the QR code wasn't scanned / the OTP wasn't sent to the companion's phone via SMS/Call/OTP
 
   If you are using the Web API, you can either register via QR code:
   ```java
@@ -240,7 +239,7 @@ Finally select the registration status of your session:
   .register(yourPhoneNumberWithCountryCode)
   ```
 
-Now you can connect to your session:
+Now you can connect to your sessionRecord:
   ```java
   .connect()
   ```
@@ -325,21 +324,21 @@ There are three ways to close a connection:
    ```java
    api.disconnect();
    ```
-   > **_IMPORTANT:_** The session remains valid for future uses
+   > **_IMPORTANT:_** The sessionRecord remains valid for future uses
 
 2. Reconnect
 
    ```java
    api.reconnect();
    ```
-   > **_IMPORTANT:_** The session remains valid for future uses
+   > **_IMPORTANT:_** The sessionRecord remains valid for future uses
 
 3. Log out
 
    ```java
    api.logout();
    ```
-   > **_IMPORTANT:_** The session doesn't remain valid for future uses
+   > **_IMPORTANT:_** The sessionRecord doesn't remain valid for future uses
 
 ### What is a listener and how to register it
 
@@ -353,9 +352,9 @@ Listeners can be used either as:
    To create a new concrete listener, declare a class or record that implements the Listener interface:
 
    ```java
-   import it.auties.whatsapp.api.Listener;
+   import it.auties.whatsapp.api.WhatsappListener;
 
-   public class MyListener implements Listener {
+   public class MyListener implements WhatsappListener {
     @Override
     public void onLoggedIn() {
         System.out.println("Hello :)");
@@ -399,16 +398,16 @@ The multi-device implementation, instead, sends all of this information progress
 In practice, this means that this data needs to be serialized somewhere.
 The same is true for the mobile api.
 
-By default, this library serializes data regarding a session at `$HOME/.whatsapp4j/[web|mobile]/<session_id>`.
+By default, this library serializes data regarding a sessionRecord at `$HOME/.whatsapp4j/[web|mobile]/<session_id>`.
 The data is stored in protobuf files.
 
 If your application needs to serialize data in a different way, for example in a database create a custom implementation of ControllerSerializer.
 Then make sure to specify your implementation in the `Whatsapp` builder.
 This is explained in the "How to create a connection" section.
 
-### How to handle session disconnects
+### How to handle sessionRecord disconnects
 
-When the session is closed, the onDisconnect method in any listener is invoked.
+When the sessionRecord is closed, the onDisconnect method in any listener is invoked.
 These are the three reasons that can cause a disconnect:
 
 1. DISCONNECTED
@@ -426,10 +425,10 @@ These are the three reasons that can cause a disconnect:
    The client was logged out by itself or by its companion.
    By default, no error is thrown if this happens, though this behaviour can be changed easily:
     ```java
-    import it.auties.whatsapp.api.DisconnectReason;
-    import it.auties.whatsapp.api.Listener;import it.auties.whatsapp.api.WhatsappListener;
+    import it.auties.whatsapp.api.WhatsappDisconnectReason;
+    import it.auties.whatsapp.api.WhatsappListener;
 
-    class ThrowOnLogOut implements Listener {
+    class ThrowOnLogOut implements WhatsappListener {
         @Override
         public void onDisconnected(DisconnectReason reason) {
             if (reason != SocketEvent.LOGGED_OUT) {

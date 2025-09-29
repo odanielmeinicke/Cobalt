@@ -3,13 +3,11 @@ package it.auties.whatsapp.model.companion;
 import it.auties.protobuf.annotation.ProtobufMessage;
 import it.auties.protobuf.annotation.ProtobufProperty;
 import it.auties.protobuf.model.ProtobufType;
-import it.auties.whatsapp.api.ClientType;
-import it.auties.whatsapp.model.signal.auth.UserAgent.PlatformType;
-import it.auties.whatsapp.model.signal.auth.Version;
+import it.auties.whatsapp.api.WhatsappClientType;
+import it.auties.whatsapp.model.auth.UserAgent.PlatformType;
+import it.auties.whatsapp.model.auth.Version;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,62 +17,307 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @ProtobufMessage
 public final class CompanionDevice {
-    private static final List<Entry<String, String>> IPHONES = List.of(
-            Map.entry("iPhone_11", "iPhone12,1"),
-            Map.entry("iPhone_11_Pro", "iPhone12,3"),
-            Map.entry("iPhone_11_Pro_Max", "iPhone12,5"),
-            Map.entry("iPhone_12", "iPhone13,2"),
-            Map.entry("iPhone_12_Pro", "iPhone13,3"),
-            Map.entry("iPhone_12_Pro_Max", "iPhone13,4"),
-            Map.entry("iPhone_13", "iPhone14,5"),
-            Map.entry("iPhone_13_Pro", "iPhone14,2"),
-            Map.entry("iPhone_13_Pro_Max", "iPhone14,3"),
-            Map.entry("iPhone_14", "iPhone14,7"),
-            Map.entry("iPhone_14_Plus", "iPhone14,8"),
-            Map.entry("iPhone_14_Pro", "iPhone15,2"),
-            Map.entry("iPhone_14_Pro_Max", "iPhone15,3"),
-            Map.entry("iPhone_15", "iPhone15,4"),
-            Map.entry("iPhone_15_Plus", "iPhone15,5"),
-            Map.entry("iPhone_15_Pro", "iPhone16,1"),
-            Map.entry("iPhone_15_Pro_Max", "iPhone16,2")
-    );
-    private static final List<Entry<String, String>> IOS_VERSION = List.of(
-            Map.entry("17.1", "21B74"),
-            Map.entry("17.1.1", "21B91"),
-            Map.entry("17.1.2", "21B101"),
-            Map.entry("17.2", "21C62"),
-            Map.entry("17.2.1", "21C66"),
-            Map.entry("17.3", "21D50"),
-            Map.entry("17.3.1", "21D61"),
-            Map.entry("17.4", "21E219"),
-            Map.entry("17.4.1", "21E237"),
-            Map.entry("17.5.1", "21F84"),
-            Map.entry("17.5.1", "21F91")
+    private static final List<CompanionDevice> IOS_DEVICES = List.of(
+            // --- iPhone 7 --- (Supports iOS 10-15)
+            new CompanionDevice(
+                    "iPhone 7",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone9,3",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 7",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone9,3",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone 7 Plus --- (Supports iOS 10-15)
+            new CompanionDevice(
+                    "iPhone 7 Plus",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone9,4",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 7 Plus",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone9,4",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone 8 --- (Supports iOS 11-16)
+            new CompanionDevice(
+                    "iPhone 8",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("13.7"),
+                    "17H35",
+                    "iPhone10,4",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 8",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone10,4",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 8",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone10,4",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 8",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone10,4",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone 8 Plus --- (Supports iOS 11-16)
+            new CompanionDevice(
+                    "iPhone 8 Plus",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone10,5",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 8 Plus",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone10,5",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone 8 Plus",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone10,5",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone X --- (Supports iOS 11-16)
+            new CompanionDevice(
+                    "iPhone X",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone10,6",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone X",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone10,6",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone X",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone10,6",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone XR --- (Supports iOS 12-17)
+            new CompanionDevice(
+                    "iPhone XR",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone11,8",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XR",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone11,8",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XR",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone11,8",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XR",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("17.4.1"),
+                    "21E236",
+                    "iPhone11,8",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone XS --- (Supports iOS 12-17)
+            new CompanionDevice(
+                    "iPhone XS",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone11,2",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone11,2",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone11,2",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("17.4.1"),
+                    "21E236",
+                    "iPhone11,2",
+                    WhatsappClientType.MOBILE
+            ),
+
+            // --- iPhone XS Max --- (Supports iOS 12-17)
+            new CompanionDevice(
+                    "iPhone XS Max",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("14.8.1"),
+                    "18H107",
+                    "iPhone11,6",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS Max",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("15.8.2"),
+                    "19H384",
+                    "iPhone11,6",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS Max",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("16.7.7"),
+                    "20H330",
+                    "iPhone11,6",
+                    WhatsappClientType.MOBILE
+            ),
+            new CompanionDevice(
+                    "iPhone XS Max",
+                    "Apple",
+                    null,
+                    null,
+                    Version.of("17.4.1"),
+                    "21E236",
+                    "iPhone11,6",
+                    WhatsappClientType.MOBILE
+            )
     );
 
     @ProtobufProperty(index = 1, type = ProtobufType.STRING)
-    private final String model;
+    final String model;
 
     @ProtobufProperty(index = 2, type = ProtobufType.STRING)
-    private final String manufacturer;
+    final String manufacturer;
 
     @ProtobufProperty(index = 3, type = ProtobufType.ENUM)
-    private final PlatformType platform;
+    final PlatformType platform;
 
     @ProtobufProperty(index = 4, type = ProtobufType.MESSAGE)
-    private final Version appVersion;
+    final Version appVersion;
 
     @ProtobufProperty(index = 5, type = ProtobufType.MESSAGE)
-    private final Version osVersion;
+    final Version osVersion;
 
     @ProtobufProperty(index = 6, type = ProtobufType.STRING)
-    private final String osBuildNumber;
+    final String osBuildNumber;
 
     @ProtobufProperty(index = 8, type = ProtobufType.STRING)
-    private final String modelId;
+    final String modelId;
 
     @ProtobufProperty(index = 9, type = ProtobufType.ENUM)
-    private final ClientType clientType;
+    final WhatsappClientType clientType;
 
     CompanionDevice(
             String model,
@@ -84,7 +327,7 @@ public final class CompanionDevice {
             Version osVersion,
             String osBuildNumber,
             String modelId,
-            ClientType clientType
+            WhatsappClientType clientType
     ) {
         this.model = model;
         this.modelId = modelId;
@@ -100,59 +343,43 @@ public final class CompanionDevice {
         return web(null);
     }
 
+    // TODO: Use MAC_OS so that we have newsletter support when argo encoder is done
     public static CompanionDevice web(Version appVersion) {
         return new CompanionDevice(
-                "Chrome",
-                "Google",
-                PlatformType.WEB,
+                "Surface Pro 4",
+                "Microsoft",
+                PlatformType.WINDOWS,
                 appVersion,
-                Version.of("1.0"),
+                Version.of("10.0"),
                 null,
                 null,
-                ClientType.WEB
+                WhatsappClientType.WEB
         );
     }
 
     public static CompanionDevice ios(boolean business) {
-        return ios(null, business, null);
+        return ios(null, business);
     }
 
-    public static CompanionDevice ios(boolean business, String address) {
-        return ios(null, business, address == null ? null : List.of(address));
-    }
-
-    public static CompanionDevice ios(boolean business, List<String> address) {
-        return ios(null, business, address);
-    }
-
-    public static CompanionDevice ios(Version appVersion, boolean business, List<String> address) {
-        var model = IPHONES.get(ThreadLocalRandom.current().nextInt(IPHONES.size()));
-        var version = IOS_VERSION.get(ThreadLocalRandom.current().nextInt(IOS_VERSION.size()));
+    public static CompanionDevice ios(Version appVersion, boolean business) {
+        var device = IOS_DEVICES.get(ThreadLocalRandom.current().nextInt(IOS_DEVICES.size()));
         return new CompanionDevice(
-                model.getKey(),
-                "Apple",
+                device.model,
+                device.manufacturer,
                 business ? PlatformType.IOS_BUSINESS : PlatformType.IOS,
                 appVersion,
-                Version.of(version.getKey()),
-                version.getValue(),
-                model.getValue(),
-                ClientType.MOBILE
+                device.osVersion,
+                device.osBuildNumber,
+                device.modelId,
+                WhatsappClientType.MOBILE
         );
     }
 
     public static CompanionDevice android(boolean business) {
-        return android(null, business, null);
+        return android(null, business);
     }
 
-    public static CompanionDevice android(boolean business, String address) {
-        return android(null, business, address == null ? null : List.of(address));
-    }
-
-    public static CompanionDevice android(boolean business, List<String> address) {
-        return android(null, business, address);
-    }
-
-    public static CompanionDevice android(Version appVersion, boolean business, List<String> address) {
+    public static CompanionDevice android(Version appVersion, boolean business) {
         var model = "Pixel_" + ThreadLocalRandom.current().nextInt(2, 9);
         return new CompanionDevice(
                 model,
@@ -162,24 +389,7 @@ public final class CompanionDevice {
                 Version.of(String.valueOf(ThreadLocalRandom.current().nextInt(11, 16))),
                 null,
                 model,
-                ClientType.MOBILE
-        );
-    }
-
-    public static CompanionDevice kaiOs() {
-        return kaiOs(null);
-    }
-
-    public static CompanionDevice kaiOs(Version appVersion) {
-        return new CompanionDevice(
-                "8110",
-                "Nokia",
-                PlatformType.KAIOS,
-                appVersion,
-                Version.of("2.5.4"),
-                null,
-                "8110",
-                ClientType.MOBILE
+                WhatsappClientType.MOBILE
         );
     }
 
@@ -193,7 +403,6 @@ public final class CompanionDevice {
             case ANDROID_BUSINESS -> "SMBA";
             case IOS -> "iOS";
             case IOS_BUSINESS -> "SMB iOS";
-            case KAIOS -> "KaiOS";
             default -> null;
         };
         if(platformName == null) {
@@ -203,14 +412,13 @@ public final class CompanionDevice {
         var deviceName = switch (platform()) {
             case ANDROID, ANDROID_BUSINESS -> manufacturer + "-" + model;
             case IOS, IOS_BUSINESS -> model;
-            case KAIOS -> manufacturer + "+" + model;
             default -> null;
         };
         if(deviceName == null) {
             return Optional.empty();
         }
 
-        var deviceVersion = platform.isKaiOs() ? "%s+20190925153113".formatted(osVersion) : osVersion.toString();
+        var deviceVersion = osVersion.toString();
         return Optional.of("WhatsApp/%s %s/%s Device/%s".formatted(
                 appVersion,
                 platformName,
@@ -272,13 +480,21 @@ public final class CompanionDevice {
         return osVersion;
     }
 
-    public ClientType clientType() {
+    public WhatsappClientType clientType() {
         return clientType;
     }
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof CompanionDevice that && Objects.equals(model, that.model) && Objects.equals(manufacturer, that.manufacturer) && platform == that.platform && Objects.equals(appVersion, that.appVersion) && Objects.equals(osVersion, that.osVersion) && Objects.equals(osBuildNumber, that.osBuildNumber) && Objects.equals(modelId, that.modelId) && clientType == that.clientType;
+        return o instanceof CompanionDevice that
+                && Objects.equals(model, that.model)
+                && Objects.equals(manufacturer, that.manufacturer)
+                && platform == that.platform
+                && Objects.equals(appVersion, that.appVersion)
+                && Objects.equals(osVersion, that.osVersion)
+                && Objects.equals(osBuildNumber, that.osBuildNumber)
+                && Objects.equals(modelId, that.modelId)
+                && clientType == that.clientType;
     }
 
     @Override
@@ -288,7 +504,7 @@ public final class CompanionDevice {
 
     @Override
     public String toString() {
-        return "CompanionDevice{" +
+        return "CompanionDevice[" +
                 "model='" + model + '\'' +
                 ", manufacturer='" + manufacturer + '\'' +
                 ", platform=" + platform +
@@ -297,6 +513,6 @@ public final class CompanionDevice {
                 ", osBuildNumber='" + osBuildNumber + '\'' +
                 ", modelId='" + modelId + '\'' +
                 ", clientType=" + clientType +
-                '}';
+                ']';
     }
 }

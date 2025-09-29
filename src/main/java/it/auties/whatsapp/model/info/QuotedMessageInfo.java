@@ -1,10 +1,14 @@
 package it.auties.whatsapp.model.info;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
+import it.auties.protobuf.annotation.ProtobufMessage;
+import it.auties.protobuf.annotation.ProtobufProperty;
+import it.auties.protobuf.model.ProtobufType;
 import it.auties.whatsapp.model.chat.Chat;
 import it.auties.whatsapp.model.contact.Contact;
 import it.auties.whatsapp.model.jid.Jid;
 import it.auties.whatsapp.model.message.model.MessageContainer;
+import it.auties.whatsapp.model.message.model.MessageStatus;
+import it.auties.whatsapp.model.newsletter.Newsletter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -13,33 +17,57 @@ import java.util.OptionalLong;
 /**
  * An immutable model class that represents a quoted message
  */
-public final class QuotedMessageInfo implements MessageInfo<QuotedMessageInfo> {
+@ProtobufMessage
+public final class QuotedMessageInfo implements MessageInfo {
     /**
      * The id of the message
      */
-    private final String id;
-
-    /**
-     * The chat of the message
-     */
-    private final Chat chat;
+    @ProtobufProperty(index = 1, type = ProtobufType.STRING)
+    final String id;
 
     /**
      * The sender of the message
      */
-    private final Contact sender;
+    @ProtobufProperty(index = 2, type = ProtobufType.MESSAGE)
+    Contact sender;
 
     /**
      * The message
      */
-    private MessageContainer message;
+    @ProtobufProperty(index = 3, type = ProtobufType.MESSAGE)
+    MessageContainer message;
 
-    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-    public QuotedMessageInfo(String id, Chat chat, Contact sender, MessageContainer message) {
-        this.id = id;
-        this.chat = chat;
+    // FIXME: Add a feature in ModernProtobuf that evaluates sealed types
+    //  and considers if all implementations match the expected type instead of simulating it like this
+
+    /**
+     * The chat of the message
+     */
+    @ProtobufProperty(index = 4, type = ProtobufType.MESSAGE)
+    Chat parentChat;
+
+    /**
+     * The newsletter of the message
+     */
+    @ProtobufProperty(index = 5, type = ProtobufType.MESSAGE)
+    Newsletter parentNewsletter;
+
+    QuotedMessageInfo(String id, Contact sender, MessageContainer message, Chat chat, Newsletter newsletter) {
+        this.id = Objects.requireNonNull(id, "id cannot be null");
         this.sender = sender;
-        this.message = message;
+        this.message = Objects.requireNonNull(message, "message cannot be null");
+        if(chat == null && newsletter == null) {
+            throw new NullPointerException("parent cannot be null");
+        }
+        this.parentChat = chat;
+        this.parentNewsletter = newsletter;
+    }
+
+    QuotedMessageInfo(String id, Contact sender, MessageContainer message, MessageInfoParent parent) {
+        this.id = Objects.requireNonNull(id, "id cannot be null");
+        this.sender = sender;
+        this.message = Objects.requireNonNull(message, "message cannot be null");
+       setParent(parent);
     }
 
     /**
@@ -53,15 +81,50 @@ public final class QuotedMessageInfo implements MessageInfo<QuotedMessageInfo> {
             return Optional.empty();
         }
         var id = contextInfo.quotedMessageId().orElseThrow();
-        var chat = contextInfo.quotedMessageChat().orElseThrow();
+        var parent = contextInfo.quotedMessageParent().orElseThrow();
         var sender = contextInfo.quotedMessageSender().orElse(null);
         var message = contextInfo.quotedMessage().orElseThrow();
-        return Optional.of(new QuotedMessageInfo(id, chat, sender, message));
+        return Optional.of(new QuotedMessageInfo(id, sender, message, parent));
+    }
+
+    @Override
+    public MessageStatus status() {
+        return MessageStatus.UNKNOWN;
+    }
+
+    @Override
+    public void setStatus(MessageStatus status) {
+
     }
 
     @Override
     public Jid parentJid() {
-        return chat.jid();
+        if(parentChat != null) {
+            return parentChat.jid();
+        }else if(parentNewsletter != null) {
+            return parentNewsletter.jid();
+        }else {
+            throw new InternalError();
+        }
+    }
+
+    @Override
+    public Optional<MessageInfoParent> parent() {
+        if(parentChat != null) {
+            return Optional.of(parentChat);
+        } else if(parentNewsletter != null) {
+            return Optional.of(parentNewsletter);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void setParent(MessageInfoParent parent) {
+        switch (Objects.requireNonNull(parent, "parent cannot be null")) {
+            case Chat chat -> this.parentChat = chat;
+            case Newsletter newsletter -> this.parentNewsletter = newsletter;
+        }
     }
 
     /**
@@ -71,7 +134,15 @@ public final class QuotedMessageInfo implements MessageInfo<QuotedMessageInfo> {
      */
     @Override
     public Jid senderJid() {
-        return Objects.requireNonNullElseGet(sender.jid(), this::parentJid);
+        if(sender != null) {
+            return sender.jid();
+        } else if(parentChat != null) {
+            return parentChat.jid();
+        }else if(parentNewsletter != null) {
+            return parentNewsletter.jid();
+        }else {
+            throw new InternalError();
+        }
     }
 
     /**
@@ -84,12 +155,14 @@ public final class QuotedMessageInfo implements MessageInfo<QuotedMessageInfo> {
     }
 
     @Override
-    public String id() {
-        return id;
+    public void setSender(Contact sender) {
+        Objects.requireNonNull(sender, "Sender cannot be null");
+        this.sender = sender;
     }
 
-    public Optional<Chat> chat() {
-        return Optional.of(chat);
+    @Override
+    public String id() {
+        return id;
     }
 
     @Override
@@ -98,9 +171,8 @@ public final class QuotedMessageInfo implements MessageInfo<QuotedMessageInfo> {
     }
 
     @Override
-    public QuotedMessageInfo setMessage(MessageContainer message) {
+    public void setMessage(MessageContainer message) {
         this.message = message;
-        return this;
     }
 
     @Override

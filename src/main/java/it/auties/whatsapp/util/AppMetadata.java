@@ -116,7 +116,9 @@ public final class AppMetadata {
                         .map(entry -> {
                             try {
                                 var clientVersion = Integer.parseUnsignedInt(entry.group(1));
-                                return webVersion = new Version(2, 3000, clientVersion);
+//                                System.out.println("Requested: 2.300." + clientVersion);
+//                                System.out.println("Needed: 2.3000.1023231279");
+                                return webVersion = new Version(2, 3000, 1023231279);
                             }catch (Throwable throwable) {
                                 return WEB_VERSION;
                             }
@@ -354,6 +356,7 @@ public final class AppMetadata {
                             }
                         }
 
+                        System.out.println("Note: " + app.version().primary() + "." + app.version().secondary() + "." + app.version().tertiary());
                         var result = new WhatsappKaiOsApp(
                                 new Version(app.version().primary(), app.version().secondary(), app.version().tertiary()),
                                 Objects.requireNonNull(indexHtml, "Missing index.html"),
